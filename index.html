@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#123b32">
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="ícone.svg" type="image/svg+xml">
-<title>PoupaFácil 3.0</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>PoupaFácil 3.1</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -57,7 +57,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 3.0</span>
+<span class="tag">Versão 3.1</span>
 </header>
 
 <section id="inicio">
@@ -102,6 +102,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <div class="card" id="historico"></div>
 </section>
 
+<section id="fixas" class="hidden"><h2>Despesas fixas mensais</h2><p class="muted">As contas só são descontadas do saldo quando registas o pagamento.</p><form id="formFixa" class="card"><label>Descrição</label><input id="fixaNome" required maxlength="80" placeholder="Ex.: Carro, renda, internet"><label>Valor mensal (€)</label><input id="fixaValor" type="number" min="0.01" step="0.01" required><label>Dia de vencimento</label><input id="fixaDia" type="number" min="1" max="31" value="1" required><br><br><button class="primary full">Adicionar conta</button></form><div class="card" style="margin-top:15px"><small>Total mensal previsto</small><div class="value negative" id="fixaTotal"></div><p id="fixaResumo" class="muted"></p></div><h2>Contas deste mês</h2><div class="card" id="fixaLista"></div><p class="notice">O pagamento não é automático. Em meses mais curtos, o vencimento passa para o último dia do mês.</p></section>
 <section id="metas" class="hidden">
 <h2>As minhas metas</h2>
 <form class="card" id="formMeta">
@@ -125,17 +126,18 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <nav class="nav">
 <button id="nav-inicio" class="active" onclick="abrir('inicio')">⌂ Início</button>
 <button id="nav-movimentos" onclick="abrir('movimentos')">⇄ Movimentos</button>
-<button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
+<button id="nav-fixas" onclick="abrir('fixas')">▣ Fixas</button><button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
 </nav>
 
 <script>
 'use strict';
 const CHAVE='poupafacil-v2'; // Mantém os dados da versão anterior
-let dados={movimentos:[],metas:[]};
+let dados={movimentos:[],metas:[],fixas:[]};
 try{
 const salvos=JSON.parse(localStorage.getItem(CHAVE));
 if(salvos&&Array.isArray(salvos.movimentos)&&Array.isArray(salvos.metas))dados=salvos;
 }catch(e){console.warn('Não foi possível carregar dados',e)}
+if(!Array.isArray(dados.fixas))dados.fixas=[];
 const $=id=>document.getElementById(id);
 const euros=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n);
 const guardar=()=>{
@@ -144,14 +146,14 @@ catch(e){alert('Não foi possível guardar neste navegador. Verifica o espaço d
 };
 const seguro=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 function abrir(id,tipo){
-['inicio','movimentos','metas'].forEach(s=>{
+['inicio','movimentos','fixas','metas'].forEach(s=>{
 $(s).classList.toggle('hidden',s!==id);
 $('nav-'+s).classList.toggle('active',s===id);
 });
 if(tipo)$('tipo').value=tipo;
 window.scrollTo(0,0);
 }
-function render(){
+function render(){renderFixas();
 const receitas=dados.movimentos.filter(x=>x.tipo==='receita').reduce((a,x)=>a+x.valor,0);
 const despesas=dados.movimentos.filter(x=>x.tipo==='despesa').reduce((a,x)=>a+x.valor,0);
 $('saldo').textContent=euros(receitas-despesas);
@@ -163,6 +165,37 @@ $('recentes').innerHTML=ordem.length?ordem.slice(0,4).map(linha).join(''):'<div 
 $('historico').innerHTML=ordem.length?ordem.map(linha).join(''):'<div class="empty">Ainda não tens movimentos.</div>';
 $('listaMetas').innerHTML=dados.metas.length?dados.metas.map(m=>`<div class="card" style="margin-bottom:12px"><div class="item"><div><strong>${seguro(m.nome)}</strong><small>${euros(m.poupado)} de ${euros(m.alvo)}</small></div><button class="danger" onclick="apagarMeta(${m.id})">Eliminar</button></div><div class="progress"><div class="bar" style="width:${Math.min(100,Math.max(0,m.poupado/m.alvo*100))}%"></div></div><button class="secondary full" onclick="adicionarMeta(${m.id})">+ Adicionar poupança</button></div>`).join(''):'<div class="card empty">Cria a tua primeira meta de poupança.</div>';
 }
+
+function mesFixa(){return new Date().toLocaleDateString('sv-SE').slice(0,7)}
+function renderFixas(){
+ const mes=mesFixa(),hoje=new Date().toLocaleDateString('sv-SE');
+ $('fixaTotal').textContent=euros(dados.fixas.reduce((a,x)=>a+x.valor,0));
+ const pago=x=>dados.movimentos.some(m=>m.fixaId===x.id&&m.mesFixa===mes);
+ $('fixaResumo').textContent=dados.fixas.filter(pago).length+' de '+dados.fixas.length+' contas pagas este mês';
+ $('fixaLista').innerHTML=dados.fixas.length?dados.fixas.slice().sort((a,b)=>a.dia-b.dia).map(x=>{
+ const [ano,m]=mes.split('-').map(Number),dia=Math.min(x.dia,new Date(ano,m,0).getDate());
+ const vence=mes+'-'+String(dia).padStart(2,'0');
+ return '<div class="item"><div><strong>'+seguro(x.nome)+'</strong><small>'+euros(x.valor)+' · '+vence+' · '+(pago(x)?'Pago':vence<hoje?'Vencido':'Pendente')+'</small></div><div class="right">'+(pago(x)?'<span class="positive">✓ Pago</span>':'<button class="primary" onclick="pagarFixa('+x.id+')">Pagar</button>')+'<button class="danger" onclick="eliminarFixa('+x.id+')">Eliminar</button></div></div>';
+ }).join(''):'<div class="empty">Ainda não tens despesas fixas.</div>';
+}
+$('formFixa').addEventListener('submit',e=>{
+ e.preventDefault();const nome=$('fixaNome').value.trim(),valor=Number($('fixaValor').value),dia=Number($('fixaDia').value);
+ if(!nome||!Number.isFinite(valor)||valor<=0||!Number.isInteger(dia)||dia<1||dia>31)return alert('Verifica os dados.');
+ dados.fixas.push({id:Date.now()+Math.floor(Math.random()*1000),nome,valor:Math.round(valor*100)/100,dia});
+ guardar();e.target.reset();$('fixaDia').value=1;render();
+});
+function pagarFixa(id){
+ const x=dados.fixas.find(f=>f.id===id),mes=mesFixa();if(!x)return;
+ if(dados.movimentos.some(m=>m.fixaId===id&&m.mesFixa===mes))return alert('Já está paga este mês.');
+ if(!confirm('Registar pagamento de '+x.nome+' ('+euros(x.valor)+')?'))return;
+ dados.movimentos.push({id:Date.now()+Math.floor(Math.random()*1000),tipo:'despesa',descricao:x.nome,valor:x.valor,categoria:'Casa',data:new Date().toLocaleDateString('sv-SE'),fixaId:id,mesFixa:mes});
+ guardar();render();
+}
+function eliminarFixa(id){
+ if(!confirm('Eliminar conta fixa? Os pagamentos anteriores serão mantidos.'))return;
+ dados.fixas=dados.fixas.filter(x=>x.id!==id);guardar();render();
+}
+
 $('formMov').addEventListener('submit',e=>{
 e.preventDefault();
 const valor=Number($('valor').value);
@@ -227,7 +260,7 @@ $('installBtn').addEventListener('click',async()=>{
 window.addEventListener('appinstalled',()=>{$('installBox').classList.add('hidden')});
 if(window.matchMedia('(display-mode: standalone)').matches)$('installBox').classList.add('hidden');
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='poupafacil-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 $('importBtn').addEventListener('click',()=>$('importFile').click());
@@ -238,7 +271,7 @@ $('importFile').addEventListener('change',async e=>{
  if(!Array.isArray(d.movimentos)||!Array.isArray(d.metas))throw Error('Formato inválido');
  if(!d.movimentos.every(x=>typeof x.descricao==='string'&&Number.isFinite(x.valor)&&['receita','despesa'].includes(x.tipo)&&typeof x.data==='string')||!d.metas.every(x=>typeof x.nome==='string'&&Number.isFinite(x.alvo)&&Number.isFinite(x.poupado)))throw Error('Dados inválidos');
  if(!confirm('Importar substitui os dados atuais deste navegador. Exporta uma cópia primeiro. Continuar?'))return;
- dados={movimentos:d.movimentos,metas:d.metas};guardar();render();alert('Dados importados com sucesso.');
+ dados={movimentos:d.movimentos,metas:d.metas,fixas:Array.isArray(d.fixas)?d.fixas.filter(x=>typeof x.nome==="string"&&Number.isFinite(x.valor)&&x.valor>0&&Number.isInteger(x.dia)&&x.dia>=1&&x.dia<=31):[]};guardar();render();alert('Dados importados com sucesso.');
  }catch(err){alert('Não foi possível importar: '+err.message)}finally{e.target.value=''}
 });
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('Offline indisponível',e)));
