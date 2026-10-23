@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>PoupaFácil 3.1</title>
+<title>PoupaFácil 3.2</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -57,7 +57,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 3.1</span>
+<span class="tag">Versão 3.2</span>
 </header>
 
 <section id="inicio">
@@ -91,7 +91,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <input id="valor" type="number" inputmode="decimal" min="0.01" max="99999999" step="0.01" required placeholder="0,00">
 <label for="categoria">Categoria</label>
 <select id="categoria">
-<option>Alimentação</option><option>Transporte</option><option>Casa</option><option>Saúde</option><option>Lazer</option><option>Salário</option><option>Outros</option>
+<option>Alimentação</option><option>Combustível</option><option>Luz</option><option>Água</option><option>Transporte</option><option>Casa</option><option>Saúde</option><option>Lazer</option><option>Salário</option><option>Outros</option>
 </select>
 <label for="data">Data</label>
 <input id="data" type="date" required>
@@ -103,6 +103,15 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 </section>
 
 <section id="fixas" class="hidden"><h2>Despesas fixas mensais</h2><p class="muted">As contas só são descontadas do saldo quando registas o pagamento.</p><form id="formFixa" class="card"><label>Descrição</label><input id="fixaNome" required maxlength="80" placeholder="Ex.: Carro, renda, internet"><label>Valor mensal (€)</label><input id="fixaValor" type="number" min="0.01" step="0.01" required><label>Dia de vencimento</label><input id="fixaDia" type="number" min="1" max="31" value="1" required><br><br><button class="primary full">Adicionar conta</button></form><div class="card" style="margin-top:15px"><small>Total mensal previsto</small><div class="value negative" id="fixaTotal"></div><p id="fixaResumo" class="muted"></p></div><h2>Contas deste mês</h2><div class="card" id="fixaLista"></div><p class="notice">O pagamento não é automático. Em meses mais curtos, o vencimento passa para o último dia do mês.</p></section>
+<section id="orcamento" class="hidden">
+<h2>Orçamento mensal</h2><p class="muted">Define limites para gastos variáveis. Os gastos reais são calculados pelos movimentos registados neste mês.</p>
+<form id="formOrcamento" class="card">
+<label for="orcCategoria">Categoria</label><select id="orcCategoria"><option>Alimentação</option><option>Combustível</option><option>Luz</option><option>Água</option><option>Transporte</option><option>Casa</option><option>Saúde</option><option>Lazer</option><option>Outros</option></select>
+<label for="orcLimite">Limite mensal (€)</label><input id="orcLimite" type="number" inputmode="decimal" min="0.01" step="0.01" required>
+<br><br><button class="primary full">Guardar limite</button></form>
+<div class="card" style="margin-top:14px"><small>Orçamento previsto</small><div class="value" id="orcPrevisto"></div><small>Gasto real deste mês</small><div class="value negative" id="orcGasto"></div><small>Disponível no orçamento</small><div class="value positive" id="orcDisponivel"></div></div>
+<h2>Por categoria</h2><div id="orcLista"></div><p class="notice">As despesas fixas registadas pelo botão Pagar não são contadas neste orçamento variável, evitando duplicações.</p>
+</section>
 <section id="metas" class="hidden">
 <h2>As minhas metas</h2>
 <form class="card" id="formMeta">
@@ -126,7 +135,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <nav class="nav">
 <button id="nav-inicio" class="active" onclick="abrir('inicio')">⌂ Início</button>
 <button id="nav-movimentos" onclick="abrir('movimentos')">⇄ Movimentos</button>
-<button id="nav-fixas" onclick="abrir('fixas')">▣ Fixas</button><button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
+<button id="nav-fixas" onclick="abrir('fixas')">▣ Fixas</button><button id="nav-orcamento" onclick="abrir('orcamento')">▥ Orçamento</button><button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
 </nav>
 
 <script>
@@ -138,6 +147,7 @@ const salvos=JSON.parse(localStorage.getItem(CHAVE));
 if(salvos&&Array.isArray(salvos.movimentos)&&Array.isArray(salvos.metas))dados=salvos;
 }catch(e){console.warn('Não foi possível carregar dados',e)}
 if(!Array.isArray(dados.fixas))dados.fixas=[];
+if(!dados.orcamentos||typeof dados.orcamentos!=='object'||Array.isArray(dados.orcamentos))dados.orcamentos={};
 const $=id=>document.getElementById(id);
 const euros=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n);
 const guardar=()=>{
@@ -146,14 +156,14 @@ catch(e){alert('Não foi possível guardar neste navegador. Verifica o espaço d
 };
 const seguro=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 function abrir(id,tipo){
-['inicio','movimentos','fixas','metas'].forEach(s=>{
+['inicio','movimentos','fixas','orcamento','metas'].forEach(s=>{
 $(s).classList.toggle('hidden',s!==id);
 $('nav-'+s).classList.toggle('active',s===id);
 });
 if(tipo)$('tipo').value=tipo;
 window.scrollTo(0,0);
 }
-function render(){renderFixas();
+function render(){renderFixas();renderOrcamento();
 const receitas=dados.movimentos.filter(x=>x.tipo==='receita').reduce((a,x)=>a+x.valor,0);
 const despesas=dados.movimentos.filter(x=>x.tipo==='despesa').reduce((a,x)=>a+x.valor,0);
 $('saldo').textContent=euros(receitas-despesas);
@@ -178,6 +188,28 @@ function renderFixas(){
  return '<div class="item"><div><strong>'+seguro(x.nome)+'</strong><small>'+euros(x.valor)+' · '+vence+' · '+(pago(x)?'Pago':vence<hoje?'Vencido':'Pendente')+'</small></div><div class="right">'+(pago(x)?'<span class="positive">✓ Pago</span>':'<button class="primary" onclick="pagarFixa('+x.id+')">Pagar</button>')+'<button class="danger" onclick="eliminarFixa('+x.id+')">Eliminar</button></div></div>';
  }).join(''):'<div class="empty">Ainda não tens despesas fixas.</div>';
 }
+
+function renderOrcamento(){
+ const mes=new Date().toLocaleDateString('sv-SE').slice(0,7);
+ const limites=Object.entries(dados.orcamentos).filter(([c,v])=>Number.isFinite(v)&&v>0);
+ let total=0,gastoTotal=0;
+ $('orcLista').innerHTML=limites.length?limites.map(([cat,limite])=>{
+  const gasto=dados.movimentos.filter(m=>m.tipo==='despesa'&&!m.fixaId&&m.categoria===cat&&typeof m.data==='string'&&m.data.startsWith(mes)).reduce((a,m)=>a+m.valor,0);
+  total+=limite;gastoTotal+=gasto;
+  const percent=Math.min(100,Math.max(0,gasto/limite*100));
+  return '<div class="card" style="margin-bottom:12px"><div class="item"><div><strong>'+seguro(cat)+'</strong><small>'+euros(gasto)+' de '+euros(limite)+'</small></div><button class="danger" onclick="removerOrcamento(\''+seguro(cat)+'\')">Remover</button></div><div class="progress"><div class="bar" style="width:'+percent+'%;background:'+(gasto>limite?'#d34b50':'#1b9b70')+'"></div></div><small>'+(gasto>limite?'Ultrapassaste '+euros(gasto-limite):'Restam '+euros(limite-gasto))+'</small></div>';
+ }).join(''):'<div class="card empty">Define o primeiro limite mensal.</div>';
+ $('orcPrevisto').textContent=euros(total);$('orcGasto').textContent=euros(gastoTotal);
+ $('orcDisponivel').textContent=euros(total-gastoTotal);
+ $('orcDisponivel').className='value '+(total-gastoTotal<0?'negative':'positive');
+}
+$('formOrcamento').addEventListener('submit',e=>{
+ e.preventDefault();const cat=$('orcCategoria').value,v=Number($('orcLimite').value);
+ if(!Number.isFinite(v)||v<=0)return alert('Indica um limite válido.');
+ dados.orcamentos[cat]=Math.round(v*100)/100;guardar();render();$('orcLimite').value='';
+});
+function removerOrcamento(cat){if(confirm('Remover o limite de '+cat+'? Os movimentos serão mantidos.')){delete dados.orcamentos[cat];guardar();render()}}
+
 $('formFixa').addEventListener('submit',e=>{
  e.preventDefault();const nome=$('fixaNome').value.trim(),valor=Number($('fixaValor').value),dia=Number($('fixaDia').value);
  if(!nome||!Number.isFinite(valor)||valor<=0||!Number.isInteger(dia)||dia<1||dia>31)return alert('Verifica os dados.');
@@ -260,7 +292,7 @@ $('installBtn').addEventListener('click',async()=>{
 window.addEventListener('appinstalled',()=>{$('installBox').classList.add('hidden')});
 if(window.matchMedia('(display-mode: standalone)').matches)$('installBox').classList.add('hidden');
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas,orcamentos:dados.orcamentos},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='poupafacil-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 $('importBtn').addEventListener('click',()=>$('importFile').click());
@@ -271,7 +303,7 @@ $('importFile').addEventListener('change',async e=>{
  if(!Array.isArray(d.movimentos)||!Array.isArray(d.metas))throw Error('Formato inválido');
  if(!d.movimentos.every(x=>typeof x.descricao==='string'&&Number.isFinite(x.valor)&&['receita','despesa'].includes(x.tipo)&&typeof x.data==='string')||!d.metas.every(x=>typeof x.nome==='string'&&Number.isFinite(x.alvo)&&Number.isFinite(x.poupado)))throw Error('Dados inválidos');
  if(!confirm('Importar substitui os dados atuais deste navegador. Exporta uma cópia primeiro. Continuar?'))return;
- dados={movimentos:d.movimentos,metas:d.metas,fixas:Array.isArray(d.fixas)?d.fixas.filter(x=>typeof x.nome==="string"&&Number.isFinite(x.valor)&&x.valor>0&&Number.isInteger(x.dia)&&x.dia>=1&&x.dia<=31):[]};guardar();render();alert('Dados importados com sucesso.');
+ dados={movimentos:d.movimentos,metas:d.metas,fixas:Array.isArray(d.fixas)?d.fixas.filter(x=>typeof x.nome==="string"&&Number.isFinite(x.valor)&&x.valor>0&&Number.isInteger(x.dia)&&x.dia>=1&&x.dia<=31):[],orcamentos:{}};if(d.orcamentos&&typeof d.orcamentos==='object'&&!Array.isArray(d.orcamentos)){for(const [c,v] of Object.entries(d.orcamentos)){if(['Alimentação','Combustível','Luz','Água','Transporte','Casa','Saúde','Lazer','Outros'].includes(c)&&Number.isFinite(v)&&v>0)dados.orcamentos[c]=v}}guardar();render();alert('Dados importados com sucesso.');
  }catch(err){alert('Não foi possível importar: '+err.message)}finally{e.target.value=''}
 });
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('Offline indisponível',e)));
