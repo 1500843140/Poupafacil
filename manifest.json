@@ -1,13 +1,14 @@
+
 {
   "id": "/Poupafacil/",
   "name": "PoupaFácil",
   "short_name": "PoupaFácil",
-  "description": "Aplicação para controlar despesas, rendimentos e metas de poupança.",
+  "description": "Aplicação para controlar despesas e organizar as tuas finanças.",
   "start_url": "/Poupafacil/",
   "scope": "/Poupafacil/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#006b4f",
+  "theme_color": "#123b32",
   "lang": "pt-PT",
   "icons": [
     {
