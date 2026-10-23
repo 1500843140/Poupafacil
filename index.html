@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>PoupaFácil 3.9 (prévia)</title>
+<title>PoupaFácil 4.0 (prévia)</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -58,7 +58,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 3.9</span>
+<span class="tag">Versão 4.0</span>
 </header>
 
 <section id="inicio"><div class="card" style="margin-bottom:16px"><strong>Saldo inicial</strong><p class="muted">Dinheiro disponível antes dos movimentos registados. Não conta como receita do mês.</p><div id="saldoInicialExibido" class="value"></div><button class="secondary full" type="button" id="definirSaldoBtn">Definir saldo inicial</button></div>
@@ -129,7 +129,13 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <h2>Despesas fixas</h2><div id="painelFixas" class="card"></div>
 <h2>Evolução dos últimos 6 meses</h2><div id="painelEvolucao" class="card"></div>
 </section>
-<section id="resumo" class="hidden"><h2>Resumo financeiro mensal</h2><div class="card"><label for="resumoMes">Escolhe o mês</label><input id="resumoMes" type="month"></div><div class="stats"><div class="card"><small>Receitas do mês</small><div id="resumoReceitas" class="value positive"></div></div><div class="card"><small>Despesas do mês</small><div id="resumoDespesas" class="value negative"></div></div></div><div class="card"><small>Resultado do mês</small><div id="resumoResultado" class="value"></div><p class="muted">Receitas menos despesas registadas neste mês. O saldo inicial não é uma receita.</p></div><h2>Receitas por origem</h2><div id="resumoOrigens"></div><h2>Despesas por categoria</h2><div id="resumoCategorias"></div><h2>Comparação com o mês anterior</h2><div id="resumoComparacao" class="card"></div></section><section id="metas" class="hidden">
+<section id="resumo" class="hidden"><h2>Resumo financeiro mensal</h2><div class="card"><label for="resumoMes">Escolhe o mês</label><input id="resumoMes" type="month"></div><div class="stats"><div class="card"><small>Receitas do mês</small><div id="resumoReceitas" class="value positive"></div></div><div class="card"><small>Despesas do mês</small><div id="resumoDespesas" class="value negative"></div></div></div><div class="card"><small>Resultado do mês</small><div id="resumoResultado" class="value"></div><p class="muted">Receitas menos despesas registadas neste mês. O saldo inicial não é uma receita.</p></div><h2>Receitas por origem</h2><div id="resumoOrigens"></div><h2>Despesas por categoria</h2><div id="resumoCategorias"></div><h2>Comparação com o mês anterior</h2><div id="resumoComparacao" class="card"></div></section><section id="dividas" class="hidden">
+<h2>💳 Controlo de dívidas</h2><p class="muted">Acompanha os valores em dívida e os pagamentos. Os pagamentos aqui registados não são descontados automaticamente do saldo: regista-os também como despesa, se necessário.</p>
+<form id="formDivida" class="card"><label for="dividaNome">Nome da dívida</label><input id="dividaNome" maxlength="80" required placeholder="Ex.: Cartão de crédito"><label for="dividaTotal">Valor inicial (€)</label><input id="dividaTotal" type="number" min="0.01" step="0.01" required><label for="dividaPago">Já pago (€)</label><input id="dividaPago" type="number" min="0" step="0.01" value="0" required><label for="dividaPrestacao">Prestação prevista (€) — opcional</label><input id="dividaPrestacao" type="number" min="0" step="0.01" value="0"><label for="dividaVencimento">Próximo vencimento — opcional</label><input id="dividaVencimento" type="date"><br><br><button class="primary full">Adicionar dívida</button></form>
+<div class="card" style="margin-top:14px"><small>Total em dívida</small><div id="dividaSaldo" class="value negative"></div><small>Total já pago</small><div id="dividaPagamentos" class="value positive"></div></div><h2>As minhas dívidas</h2><div id="listaDividas"></div>
+</section>
+<section id="calendario" class="hidden"><h2>📅 Calendário financeiro</h2><p class="muted">Consulta os vencimentos das despesas fixas e das dívidas. Não são criados pagamentos automaticamente.</p><div class="card"><label for="calMes">Mês</label><input type="month" id="calMes"></div><div class="card" id="calLista" style="margin-top:14px"></div></section>
+<section id="metas" class="hidden">
 <h2>As minhas metas</h2>
 <form class="card" id="formMeta">
 <label for="nomeMeta">Nome da meta</label>
@@ -154,6 +160,8 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <button id="nav-fixas" onclick="abrir('fixas')">▣ Despesas fixas</button>
 <button id="nav-orcamento" onclick="abrir('orcamento')">▥ Orçamento</button>
 <button id="nav-resumo" onclick="abrir('resumo')">▤ Resumo mensal</button>
+<button id="nav-dividas" onclick="abrir('dividas')">💳 Dívidas</button>
+<button id="nav-calendario" onclick="abrir('calendario')">📅 Calendário</button>
 </div>
 <nav class="nav" aria-label="Navegação principal">
 <button id="nav-inicio" class="active" onclick="abrir('inicio')"><span aria-hidden="true">⌂</span>Início</button>
@@ -174,6 +182,7 @@ if(salvos&&Array.isArray(salvos.movimentos)&&Array.isArray(salvos.metas))dados=s
 if(!Array.isArray(dados.fixas))dados.fixas=[];
 if(!dados.orcamentos||typeof dados.orcamentos!=='object'||Array.isArray(dados.orcamentos))dados.orcamentos={};
 if(!Number.isFinite(dados.saldoInicial))dados.saldoInicial=0;
+if(!Array.isArray(dados.dividas))dados.dividas=[];
 const $=id=>document.getElementById(id);
 const euros=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n);
 const guardar=()=>{
@@ -187,17 +196,17 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharMenu()});
 document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#moreBtn'))fecharMenu()});
 function abrir(id,tipo){
 fecharMenu();
-['inicio','movimentos','variaveis','fixas','orcamento','painel','resumo','metas'].forEach(s=>{
+['inicio','movimentos','variaveis','fixas','orcamento','painel','resumo','metas','dividas','calendario'].forEach(s=>{
 $(s).classList.toggle('hidden',s!==id);
 $('nav-'+s).classList.toggle('active',s===id);
 });
-$('moreBtn').classList.toggle('active',['variaveis','fixas','orcamento','resumo'].includes(id));
+$('moreBtn').classList.toggle('active',['variaveis','fixas','orcamento','resumo','dividas','calendario'].includes(id));
 if(id==='movimentos'&&tipo&&edicaoMovId!==null)cancelarEdicaoMov();
 if(tipo)$('tipo').value=tipo;
 mostrarOutros();mostrarOrigem();
 window.scrollTo(0,0);
 }
-function render(){renderFixas();renderOrcamento();renderVariaveis();renderResumo();renderPainel();$('saldoInicialExibido').textContent=euros(dados.saldoInicial);
+function render(){renderDividas();renderCalendario();renderFixas();renderOrcamento();renderVariaveis();renderResumo();renderPainel();$('saldoInicialExibido').textContent=euros(dados.saldoInicial);
 const receitas=dados.movimentos.filter(x=>x.tipo==='receita').reduce((a,x)=>a+x.valor,0);
 const despesas=dados.movimentos.filter(x=>x.tipo==='despesa').reduce((a,x)=>a+x.valor,0);
 $('saldo').textContent=euros(dados.saldoInicial+receitas-despesas);
@@ -216,6 +225,34 @@ $('listaMetas').innerHTML=dados.metas.length?dados.metas.map(m=>`<div class="car
 
 
 $('filtroBusca').addEventListener('input',render);$('filtroTipo').addEventListener('change',render);
+function renderDividas(){
+ const lista=dados.dividas.filter(d=>d&&Number.isFinite(d.total)&&d.total>0);
+ const total=lista.reduce((a,d)=>a+Math.max(0,d.total-d.pago),0),pago=lista.reduce((a,d)=>a+d.pago,0);
+ $('dividaSaldo').textContent=euros(total);$('dividaPagamentos').textContent=euros(pago);
+ $('listaDividas').innerHTML=lista.length?lista.map(d=>'<div class="card" style="margin-bottom:12px"><strong>'+seguro(d.nome)+'</strong><p class="muted">Em dívida: '+euros(Math.max(0,d.total-d.pago))+' de '+euros(d.total)+'</p><div class="progress"><div class="bar" style="width:'+Math.min(100,d.pago/d.total*100)+'%"></div></div><p class="notice">Prestação prevista: '+euros(d.prestacao||0)+' · Próximo vencimento: '+seguro(d.vencimento||'Não definido')+'</p><div class="actions"><button class="secondary" onclick="pagarDivida('+d.id+')">Registar pagamento</button><button class="danger" onclick="apagarDivida('+d.id+')">Eliminar</button></div></div>').join(''):'<div class="card empty">Ainda não tens dívidas registadas.</div>';
+}
+$('formDivida').addEventListener('submit',e=>{
+ e.preventDefault();const total=Number($('dividaTotal').value),pago=Number($('dividaPago').value),prestacao=Number($('dividaPrestacao').value||0);
+ if(!Number.isFinite(total)||total<=0||!Number.isFinite(pago)||pago<0||pago>total||!Number.isFinite(prestacao)||prestacao<0)return alert('Confirma os valores da dívida.');
+ dados.dividas.push({id:Date.now()+Math.floor(Math.random()*1000),nome:$('dividaNome').value.trim(),total:Math.round(total*100)/100,pago:Math.round(pago*100)/100,prestacao:Math.round(prestacao*100)/100,vencimento:$('dividaVencimento').value});
+ guardar();$('formDivida').reset();$('dividaPago').value=0;$('dividaPrestacao').value=0;render();
+});
+function pagarDivida(id){
+ const d=dados.dividas.find(x=>x.id===id);if(!d)return;
+ const entrada=prompt('Quanto pagaste (€)? Saldo restante: '+euros(Math.max(0,d.total-d.pago)));if(entrada===null)return;
+ const valor=Number(entrada.trim().replace(',','.'));if(!Number.isFinite(valor)||valor<=0||valor>Math.round((d.total-d.pago)*100)/100)return alert('Valor inválido ou superior ao saldo em dívida.');
+ d.pago=Math.min(d.total,Math.round((d.pago+valor)*100)/100);guardar();render();alert('Pagamento acompanhado na dívida. Para descontar do saldo disponível, regista também a despesa em Movimentos.');
+}
+function apagarDivida(id){if(!confirm('Eliminar esta dívida do acompanhamento?'))return;dados.dividas=dados.dividas.filter(d=>d.id!==id);guardar();render()}
+function renderCalendario(){
+ const mes=$('calMes').value||new Date().toLocaleDateString('sv-SE').slice(0,7);
+ const [ano,numero]=mes.split('-').map(Number),ultimo=new Date(ano,numero,0).getDate();
+ const eventos=(dados.fixas||[]).filter(f=>Number.isInteger(f.dia)&&f.dia>=1&&f.dia<=31).map(f=>({dia:Math.min(f.dia,ultimo),nome:f.nome,valor:f.valor,tipo:'Fixa'}));
+ dados.dividas.forEach(d=>{if(d.vencimento&&d.vencimento.startsWith(mes))eventos.push({dia:Number(d.vencimento.slice(8)),nome:d.nome,valor:d.prestacao||0,tipo:'Dívida'})});
+ eventos.sort((a,b)=>a.dia-b.dia);
+ $('calLista').innerHTML=eventos.length?eventos.map(e=>'<div class="item"><div><strong>Dia '+String(e.dia).padStart(2,'0')+' · '+seguro(e.nome)+'</strong><small>'+e.tipo+'</small></div><strong>'+euros(e.valor)+'</strong></div>').join(''):'<div class="empty">Sem vencimentos previstos neste mês.</div>';
+}
+$('calMes').value=new Date().toLocaleDateString('sv-SE').slice(0,7);$('calMes').addEventListener('change',renderCalendario);
 function painelMesAtual(){return $('painelMes').value||new Date().toLocaleDateString('sv-SE').slice(0,7)}
 function painelBarra(nome,valor,total,cor){
  const pct=total>0?Math.min(100,Math.max(0,valor/total*100)):0;
@@ -467,7 +504,7 @@ $('csvBtn').addEventListener('click',()=>{
  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='poupafacil-movimentos.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 });
 $('exportBtn').addEventListener('click',()=>{
- const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas,orcamentos:dados.orcamentos,saldoInicial:dados.saldoInicial},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({version:4,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas,orcamentos:dados.orcamentos,saldoInicial:dados.saldoInicial,dividas:dados.dividas},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='poupafacil-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 $('importBtn').addEventListener('click',()=>$('importFile').click());
@@ -478,10 +515,10 @@ $('importFile').addEventListener('change',async e=>{
  if(!Array.isArray(d.movimentos)||!Array.isArray(d.metas))throw Error('Formato inválido');
  if(!d.movimentos.every(x=>typeof x.descricao==='string'&&Number.isFinite(x.valor)&&['receita','despesa'].includes(x.tipo)&&typeof x.data==='string')||!d.metas.every(x=>typeof x.nome==='string'&&Number.isFinite(x.alvo)&&Number.isFinite(x.poupado)))throw Error('Dados inválidos');
  if(!confirm('A importação substitui os dados atuais. Será descarregada uma cópia de segurança antes de continuar. Continuar?'))return;
- const copia=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas,orcamentos:dados.orcamentos,saldoInicial:dados.saldoInicial},null,2)],{type:'application/json'});
+ const copia=new Blob([JSON.stringify({version:4,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas,orcamentos:dados.orcamentos,saldoInicial:dados.saldoInicial,dividas:dados.dividas},null,2)],{type:'application/json'});
  const copiaUrl=URL.createObjectURL(copia);const copiaLink=document.createElement('a');copiaLink.href=copiaUrl;copiaLink.download='poupafacil-antes-importacao.json';document.body.appendChild(copiaLink);copiaLink.click();copiaLink.remove();setTimeout(()=>URL.revokeObjectURL(copiaUrl),60000);
  if(!confirm('Confirma que a cópia de segurança foi descarregada? Se não, cancela a importação.'))return;
- dados={movimentos:d.movimentos,metas:d.metas,fixas:Array.isArray(d.fixas)?d.fixas.filter(x=>typeof x.nome==="string"&&Number.isFinite(x.valor)&&x.valor>0&&Number.isInteger(x.dia)&&x.dia>=1&&x.dia<=31):[],orcamentos:{}};if(d.orcamentos&&typeof d.orcamentos==='object'&&!Array.isArray(d.orcamentos)){for(const [c,v] of Object.entries(d.orcamentos)){if(['Alimentação','Restaurante','Café','Combustível','Luz','Água','Transporte','Casa','Saúde','Lazer','Outros'].includes(c)&&Number.isFinite(v)&&v>0)dados.orcamentos[c]=v}}dados.saldoInicial=Number.isFinite(d.saldoInicial)?d.saldoInicial:0;guardar();render();alert('Dados importados com sucesso.');
+ dados={movimentos:d.movimentos,metas:d.metas,fixas:Array.isArray(d.fixas)?d.fixas.filter(x=>typeof x.nome==="string"&&Number.isFinite(x.valor)&&x.valor>0&&Number.isInteger(x.dia)&&x.dia>=1&&x.dia<=31):[],orcamentos:{}};if(d.orcamentos&&typeof d.orcamentos==='object'&&!Array.isArray(d.orcamentos)){for(const [c,v] of Object.entries(d.orcamentos)){if(['Alimentação','Restaurante','Café','Combustível','Luz','Água','Transporte','Casa','Saúde','Lazer','Outros'].includes(c)&&Number.isFinite(v)&&v>0)dados.orcamentos[c]=v}}dados.saldoInicial=Number.isFinite(d.saldoInicial)?d.saldoInicial:0;dados.dividas=Array.isArray(d.dividas)?d.dividas.filter(x=>x&&typeof x.nome==='string'&&Number.isFinite(x.total)&&x.total>0&&Number.isFinite(x.pago)&&x.pago>=0&&x.pago<=x.total).map(x=>({...x,prestacao:Number.isFinite(x.prestacao)?x.prestacao:0,vencimento:typeof x.vencimento==='string'?x.vencimento:''})):[];guardar();render();alert('Dados importados com sucesso.');
  }catch(err){alert('Não foi possível importar: '+err.message)}finally{e.target.value=''}
 });
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('Offline indisponível',e)));
