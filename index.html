@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>PoupaFácil 3.8 (prévia)</title>
+<title>PoupaFácil 3.9 (prévia)</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -35,7 +35,7 @@ button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 15px
 .danger{background:#fff0f0;color:#b6383c}
 .full{width:100%}
 .nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;background:white;border-top:1px solid #e4ebe7;padding:10px 8px max(10px,env(safe-area-inset-bottom));gap:8px}
-.nav{overflow-x:auto;justify-content:flex-start}.nav button{flex:0 0 auto;min-width:95px;max-width:170px;background:transparent;color:#688076;padding:10px 4px;font-size:12px}
+.nav{overflow:visible;justify-content:space-around;align-items:center}.nav button{flex:1 1 0;min-width:0;background:transparent;color:#688076;padding:10px 2px;font-size:12px}.nav button span{display:block;font-size:19px;margin-bottom:2px}.nav button.active{font-weight:800}.nav button[aria-expanded=true]{background:#e7f3ed;color:#137558}.more-menu{position:fixed;bottom:calc(75px + env(safe-area-inset-bottom));right:10px;left:10px;max-width:650px;margin:auto;background:white;border:1px solid #d4e2da;border-radius:18px;box-shadow:0 12px 35px #123b3233;padding:12px;z-index:10;display:grid;grid-template-columns:1fr 1fr;gap:8px}.more-menu button{background:#eef6f1;color:#155846;text-align:left;padding:14px 12px;font-size:14px}.more-menu button.active{background:#d5ecdf}.nav{z-index:11}
 .nav button.active{color:#137558;background:#e7f3ed}
 .hidden{display:none!important}
 label{display:block;font-size:13px;font-weight:700;margin:14px 0 6px}
@@ -58,7 +58,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 3.8</span>
+<span class="tag">Versão 3.9</span>
 </header>
 
 <section id="inicio"><div class="card" style="margin-bottom:16px"><strong>Saldo inicial</strong><p class="muted">Dinheiro disponível antes dos movimentos registados. Não conta como receita do mês.</p><div id="saldoInicialExibido" class="value"></div><button class="secondary full" type="button" id="definirSaldoBtn">Definir saldo inicial</button></div>
@@ -149,10 +149,18 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <footer>Os teus dados ficam neste navegador. Se limpares os dados do site ou mudares de telemóvel, podes perdê-los.</footer>
 </main>
 
-<nav class="nav">
-<button id="nav-inicio" class="active" onclick="abrir('inicio')">⌂ Início</button>
-<button id="nav-movimentos" onclick="abrir('movimentos')">⇄ Movimentos</button>
-<button id="nav-variaveis" onclick="abrir('variaveis')">◈ Variáveis</button><button id="nav-fixas" onclick="abrir('fixas')">▣ Fixas</button><button id="nav-orcamento" onclick="abrir('orcamento')">▥ Orçamento</button><button id="nav-painel" onclick="abrir('painel')">▤ Painel</button><button id="nav-resumo" onclick="abrir('resumo')">▤ Resumo</button><button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
+<div id="moreMenu" class="more-menu hidden" role="group" aria-label="Outras funcionalidades">
+<button id="nav-variaveis" onclick="abrir('variaveis')">◈ Gastos variáveis</button>
+<button id="nav-fixas" onclick="abrir('fixas')">▣ Despesas fixas</button>
+<button id="nav-orcamento" onclick="abrir('orcamento')">▥ Orçamento</button>
+<button id="nav-resumo" onclick="abrir('resumo')">▤ Resumo mensal</button>
+</div>
+<nav class="nav" aria-label="Navegação principal">
+<button id="nav-inicio" class="active" onclick="abrir('inicio')"><span aria-hidden="true">⌂</span>Início</button>
+<button id="nav-movimentos" onclick="abrir('movimentos')"><span aria-hidden="true">⇄</span>Movimentos</button>
+<button id="nav-painel" onclick="abrir('painel')"><span aria-hidden="true">▤</span>Painel</button>
+<button id="nav-metas" onclick="abrir('metas')"><span aria-hidden="true">◎</span>Metas</button>
+<button id="moreBtn" onclick="alternarMenu()" aria-controls="moreMenu" aria-expanded="false"><span aria-hidden="true">☷</span>Mais</button>
 </nav>
 
 <script>
@@ -173,11 +181,17 @@ try{localStorage.setItem(CHAVE,JSON.stringify(dados))}
 catch(e){alert('Não foi possível guardar neste navegador. Verifica o espaço disponível e as definições de privacidade.')}
 };
 const seguro=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+function fecharMenu(){document.getElementById('moreMenu').classList.add('hidden');document.getElementById('moreBtn').setAttribute('aria-expanded','false')}
+function alternarMenu(){const menu=document.getElementById('moreMenu');const aberto=!menu.classList.toggle('hidden');document.getElementById('moreBtn').setAttribute('aria-expanded',String(aberto))}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharMenu()});
+document.addEventListener('click',e=>{if(!e.target.closest('#moreMenu')&&!e.target.closest('#moreBtn'))fecharMenu()});
 function abrir(id,tipo){
+fecharMenu();
 ['inicio','movimentos','variaveis','fixas','orcamento','painel','resumo','metas'].forEach(s=>{
 $(s).classList.toggle('hidden',s!==id);
 $('nav-'+s).classList.toggle('active',s===id);
 });
+$('moreBtn').classList.toggle('active',['variaveis','fixas','orcamento','resumo'].includes(id));
 if(id==='movimentos'&&tipo&&edicaoMovId!==null)cancelarEdicaoMov();
 if(tipo)$('tipo').value=tipo;
 mostrarOutros();mostrarOrigem();
