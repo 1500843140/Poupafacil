@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>PoupaFácil 3.5</title>
+<title>PoupaFácil 3.6</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -57,7 +57,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 3.5</span>
+<span class="tag">Versão 3.6</span>
 </header>
 
 <section id="inicio"><div class="card" style="margin-bottom:16px"><strong>Saldo inicial</strong><p class="muted">Dinheiro disponível antes dos movimentos registados. Não conta como receita do mês.</p><div id="saldoInicialExibido" class="value"></div><button class="secondary full" type="button" id="definirSaldoBtn">Definir saldo inicial</button></div>
@@ -112,6 +112,22 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <div class="card" style="margin-top:14px"><small>Orçamento previsto</small><div class="value" id="orcPrevisto"></div><small>Gasto real deste mês</small><div class="value negative" id="orcGasto"></div><small>Disponível no orçamento</small><div class="value positive" id="orcDisponivel"></div></div>
 <h2>Por categoria</h2><div id="orcLista"></div><p class="notice">As despesas fixas registadas pelo botão Pagar não são contadas neste orçamento variável, evitando duplicações.</p>
 </section>
+<section id="painel" class="hidden">
+<h2>📊 Painel financeiro</h2>
+<div class="card"><label for="painelMes">Mês de análise</label><input type="month" id="painelMes"></div>
+<div class="hero" style="margin-top:14px"><small>Saldo disponível atual</small><div class="balance" id="painelSaldo">0,00 €</div><small>Saldo inicial + todos os movimentos registados</small></div>
+<div class="stats">
+<div class="card"><small>Receitas do mês</small><div class="value positive" id="painelReceitas">0,00 €</div></div>
+<div class="card"><small>Despesas do mês</small><div class="value negative" id="painelDespesas">0,00 €</div></div>
+<div class="card"><small>Resultado do mês</small><div class="value" id="painelResultado">0,00 €</div></div>
+<div class="card"><small>Orçamento variável restante</small><div class="value" id="painelOrcamento">0,00 €</div></div>
+</div>
+<p class="notice">O resultado do mês é receitas menos despesas; não inclui o saldo inicial. Resultado positivo não significa necessariamente dinheiro separado para poupar.</p>
+<h2>De onde veio o dinheiro</h2><div id="painelFontes"></div>
+<h2>Onde gastaste mais</h2><div id="painelCategorias"></div>
+<h2>Despesas fixas</h2><div id="painelFixas" class="card"></div>
+<h2>Evolução dos últimos 6 meses</h2><div id="painelEvolucao" class="card"></div>
+</section>
 <section id="resumo" class="hidden"><h2>Resumo financeiro mensal</h2><div class="card"><label for="resumoMes">Escolhe o mês</label><input id="resumoMes" type="month"></div><div class="stats"><div class="card"><small>Receitas do mês</small><div id="resumoReceitas" class="value positive"></div></div><div class="card"><small>Despesas do mês</small><div id="resumoDespesas" class="value negative"></div></div></div><div class="card"><small>Resultado do mês</small><div id="resumoResultado" class="value"></div><p class="muted">Receitas menos despesas registadas neste mês. O saldo inicial não é uma receita.</p></div><h2>Receitas por origem</h2><div id="resumoOrigens"></div><h2>Despesas por categoria</h2><div id="resumoCategorias"></div><h2>Comparação com o mês anterior</h2><div id="resumoComparacao" class="card"></div></section><section id="metas" class="hidden">
 <h2>As minhas metas</h2>
 <form class="card" id="formMeta">
@@ -135,7 +151,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <nav class="nav">
 <button id="nav-inicio" class="active" onclick="abrir('inicio')">⌂ Início</button>
 <button id="nav-movimentos" onclick="abrir('movimentos')">⇄ Movimentos</button>
-<button id="nav-variaveis" onclick="abrir('variaveis')">◈ Variáveis</button><button id="nav-fixas" onclick="abrir('fixas')">▣ Fixas</button><button id="nav-orcamento" onclick="abrir('orcamento')">▥ Orçamento</button><button id="nav-resumo" onclick="abrir('resumo')">▤ Resumo</button><button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
+<button id="nav-variaveis" onclick="abrir('variaveis')">◈ Variáveis</button><button id="nav-fixas" onclick="abrir('fixas')">▣ Fixas</button><button id="nav-orcamento" onclick="abrir('orcamento')">▥ Orçamento</button><button id="nav-painel" onclick="abrir('painel')">▤ Painel</button><button id="nav-resumo" onclick="abrir('resumo')">▤ Resumo</button><button id="nav-metas" onclick="abrir('metas')">◎ Metas</button>
 </nav>
 
 <script>
@@ -157,7 +173,7 @@ catch(e){alert('Não foi possível guardar neste navegador. Verifica o espaço d
 };
 const seguro=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 function abrir(id,tipo){
-['inicio','movimentos','variaveis','fixas','orcamento','resumo','metas'].forEach(s=>{
+['inicio','movimentos','variaveis','fixas','orcamento','painel','resumo','metas'].forEach(s=>{
 $(s).classList.toggle('hidden',s!==id);
 $('nav-'+s).classList.toggle('active',s===id);
 });
@@ -165,7 +181,7 @@ if(tipo)$('tipo').value=tipo;
 mostrarOutros();mostrarOrigem();
 window.scrollTo(0,0);
 }
-function render(){renderFixas();renderOrcamento();renderVariaveis();renderResumo();$('saldoInicialExibido').textContent=euros(dados.saldoInicial);
+function render(){renderFixas();renderOrcamento();renderVariaveis();renderResumo();renderPainel();$('saldoInicialExibido').textContent=euros(dados.saldoInicial);
 const receitas=dados.movimentos.filter(x=>x.tipo==='receita').reduce((a,x)=>a+x.valor,0);
 const despesas=dados.movimentos.filter(x=>x.tipo==='despesa').reduce((a,x)=>a+x.valor,0);
 $('saldo').textContent=euros(dados.saldoInicial+receitas-despesas);
@@ -178,6 +194,41 @@ $('historico').innerHTML=ordem.length?ordem.map(linha).join(''):'<div class="emp
 $('listaMetas').innerHTML=dados.metas.length?dados.metas.map(m=>`<div class="card" style="margin-bottom:12px"><div class="item"><div><strong>${seguro(m.nome)}</strong><small>${euros(m.poupado)} de ${euros(m.alvo)}</small></div><button class="danger" onclick="apagarMeta(${m.id})">Eliminar</button></div><div class="progress"><div class="bar" style="width:${Math.min(100,Math.max(0,m.poupado/m.alvo*100))}%"></div></div><button class="secondary full" onclick="adicionarMeta(${m.id})">+ Adicionar poupança</button></div>`).join(''):'<div class="card empty">Cria a tua primeira meta de poupança.</div>';
 }
 
+
+
+function painelMesAtual(){return $('painelMes').value||new Date().toLocaleDateString('sv-SE').slice(0,7)}
+function painelBarra(nome,valor,total,cor){
+ const pct=total>0?Math.min(100,Math.max(0,valor/total*100)):0;
+ return '<div style="margin:12px 0"><div class="item"><strong>'+seguro(nome)+'</strong><strong>'+euros(valor)+'</strong></div><div class="progress"><div class="bar" style="width:'+pct+'%;background:'+cor+'"></div></div></div>';
+}
+function renderPainel(){
+ const mes=painelMesAtual();
+ const movs=dados.movimentos.filter(m=>typeof m.data==='string'&&m.data.startsWith(mes));
+ const receitas=movs.filter(m=>m.tipo==='receita').reduce((a,m)=>a+m.valor,0);
+ const despesas=movs.filter(m=>m.tipo==='despesa').reduce((a,m)=>a+m.valor,0);
+ const saldo=dados.saldoInicial+dados.movimentos.reduce((a,m)=>a+(m.tipo==='receita'?m.valor:-m.valor),0);
+ $('painelSaldo').textContent=euros(saldo);$('painelReceitas').textContent=euros(receitas);$('painelDespesas').textContent=euros(despesas);
+ const resultado=receitas-despesas;
+ $('painelResultado').textContent=euros(resultado);$('painelResultado').className='value '+(resultado>=0?'positive':'negative');
+ const fontes={};movs.filter(m=>m.tipo==='receita').forEach(m=>{const k=m.origemReceita||m.categoria||'Não identificada';fontes[k]=(fontes[k]||0)+m.valor});
+ $('painelFontes').innerHTML=Object.keys(fontes).length?'<div class="card">'+Object.entries(fontes).sort((a,b)=>b[1]-a[1]).map(([k,v])=>painelBarra(k,v,receitas,'#16835e')).join('')+'</div>':'<div class="card empty">Sem receitas registadas neste mês.</div>';
+ const cats={};movs.filter(m=>m.tipo==='despesa').forEach(m=>{const k=m.categoria||'Outros';cats[k]=(cats[k]||0)+m.valor});
+ $('painelCategorias').innerHTML=Object.keys(cats).length?'<div class="card">'+Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>painelBarra(k,v,despesas,'#d34b50')).join('')+'</div>':'<div class="card empty">Sem despesas registadas neste mês.</div>';
+ const limites=Object.entries(dados.orcamentos).filter(([k,v])=>Number.isFinite(v)&&v>0);
+ const previsto=limites.reduce((a,[k,v])=>a+v,0);
+ const gasto=limites.reduce((a,[k,v])=>a+movs.filter(m=>m.tipo==='despesa'&&!m.fixaId&&m.categoria===k).reduce((t,m)=>t+m.valor,0),0);
+ const restante=previsto-gasto;$('painelOrcamento').textContent=euros(restante);$('painelOrcamento').className='value '+(restante>=0?'positive':'negative');
+ const fixas=dados.fixas||[];const pagamentos=movs.filter(m=>m.tipo==='despesa'&&m.fixaId);
+ const pagas=fixas.filter(f=>pagamentos.some(m=>String(m.fixaId)===String(f.id))).length;
+ const fixoPrevisto=fixas.reduce((a,f)=>a+f.valor,0);
+ $('painelFixas').innerHTML='<div class="value">'+pagas+' de '+fixas.length+' pagas</div><p class="muted">Previsto: '+euros(fixoPrevisto)+' / Registado: '+euros(pagamentos.reduce((a,m)=>a+m.valor,0))+'</p><p class="notice">As contas só contam como despesa quando o pagamento é registado.</p>';
+ const [ano,numero]=mes.split('-').map(Number),meses=[];
+ for(let i=5;i>=0;i--){const d=new Date(ano,numero-1-i,1),chave=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');const grupo=dados.movimentos.filter(m=>typeof m.data==='string'&&m.data.startsWith(chave));meses.push({chave,rec:grupo.filter(m=>m.tipo==='receita').reduce((a,m)=>a+m.valor,0),des:grupo.filter(m=>m.tipo==='despesa').reduce((a,m)=>a+m.valor,0)})}
+ const max=Math.max(1,...meses.flatMap(m=>[m.rec,m.des]));
+ $('painelEvolucao').innerHTML=meses.map(m=>'<div style="margin:14px 0"><strong>'+seguro(m.chave)+'</strong><small style="display:block">Receitas: '+euros(m.rec)+'</small><div class="progress"><div class="bar" style="width:'+(m.rec/max*100)+'%;background:#16835e"></div></div><small style="display:block">Despesas: '+euros(m.des)+'</small><div class="progress"><div class="bar" style="width:'+(m.des/max*100)+'%;background:#d34b50"></div></div></div>').join('');
+}
+$('painelMes').value=new Date().toLocaleDateString('sv-SE').slice(0,7);
+$('painelMes').addEventListener('change',renderPainel);
 
 function mesSelecionado(){return $('resumoMes').value||new Date().toLocaleDateString('sv-SE').slice(0,7)}
 function renderResumo(){
