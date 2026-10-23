@@ -149,6 +149,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 </form>
 <h2>Objetivos</h2>
 <div id="listaMetas"></div>
+<div class="card"><h2>Calculadora de poupança</h2><p class="muted">Descobre quanto precisas de guardar por mês para alcançar uma meta. Este cálculo não altera os teus registos.</p><label for="calcMeta">Objetivo (€)</label><input id="calcMeta" type="number" min="0.01" step="0.01" placeholder="Ex.: 2000"><label for="calcGuardado">Já poupado (€)</label><input id="calcGuardado" type="number" min="0" step="0.01" value="0"><label for="calcMeses">Meses até ao objetivo</label><input id="calcMeses" type="number" min="1" max="600" step="1" value="12"><button type="button" id="calcBtn" class="primary full" style="margin-top:12px">Calcular poupança mensal</button><div id="calcResultado" class="value" aria-live="polite"></div></div>
 <p class="notice">Os valores das metas são acompanhados separadamente do saldo.</p>
 </section>
 <section class="card" style="margin-top:20px"><strong>🧹 Iniciar controlo financeiro</strong><p class="muted">Quando estiveres pronto para começar com dados reais, podes apagar os movimentos de teste. As despesas fixas, os orçamentos e as metas ficam guardados. Faz uma cópia de segurança antes.</p><button id="reiniciarBtn" type="button" class="danger full">Preparar novo início</button></section><section class="card" style="margin-top:20px"><strong>🔒 Cópia de segurança</strong><p class="muted">Guarda os teus movimentos e metas num ficheiro. Importa-o para recuperar os dados noutro telemóvel.</p><div class="actions"><button class="secondary" id="exportBtn" type="button">Exportar dados</button><button class="secondary" id="importBtn" type="button">Importar dados</button></div><button class="secondary full" id="csvBtn" type="button" style="margin-top:10px">Exportar movimentos (CSV)</button><p class="notice">Exporta uma cópia JSON regularmente. Os dados não são sincronizados entre dispositivos.</p><input id="importFile" class="hidden" type="file" accept=".json,application/json"></section>
@@ -253,6 +254,11 @@ function renderCalendario(){
  $('calLista').innerHTML=eventos.length?eventos.map(e=>'<div class="item"><div><strong>Dia '+String(e.dia).padStart(2,'0')+' · '+seguro(e.nome)+'</strong><small>'+e.tipo+'</small></div><strong>'+euros(e.valor)+'</strong></div>').join(''):'<div class="empty">Sem vencimentos previstos neste mês.</div>';
 }
 $('calMes').value=new Date().toLocaleDateString('sv-SE').slice(0,7);$('calMes').addEventListener('change',renderCalendario);
+$('calcBtn').addEventListener('click',()=>{
+ const alvo=Number($('calcMeta').value),guardado=Number($('calcGuardado').value),meses=Number($('calcMeses').value);
+ if(!Number.isFinite(alvo)||alvo<=0||!Number.isFinite(guardado)||guardado<0||!Number.isInteger(meses)||meses<1||meses>600)return alert('Preenche valores válidos.');
+ $('calcResultado').textContent='Guardar '+euros(Math.ceil(Math.max(0,alvo-guardado)*100/meses)/100)+' por mês';
+});
 function painelMesAtual(){return $('painelMes').value||new Date().toLocaleDateString('sv-SE').slice(0,7)}
 function painelBarra(nome,valor,total,cor){
  const pct=total>0?Math.min(100,Math.max(0,valor/total*100)):0;
