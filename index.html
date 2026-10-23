@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="ícone.svg" type="image/svg+xml">
-<title>PoupaFácil 2.0</title>
+<title>PoupaFácil 3.0</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -57,10 +57,11 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 2.0</span>
+<span class="tag">Versão 3.0</span>
 </header>
 
 <section id="inicio">
+<div id="installBox" class="card" style="margin-bottom:16px"><strong>📲 Instalar PoupaFácil</strong><p class="muted">Instala no Android para abrir como uma aplicação.</p><button id="installBtn" class="primary full" type="button">Instalar aplicação</button><p id="installHelp" class="notice">Se não aparecer a instalação, abre no Chrome e usa o menu ⋮ → Adicionar ao ecrã principal ou Instalar aplicação.</p></div>
 <div class="hero">
 <small>Saldo disponível</small>
 <div class="balance" id="saldo">0,00 €</div>
@@ -117,6 +118,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <div id="listaMetas"></div>
 <p class="notice">Os valores das metas são acompanhados separadamente do saldo.</p>
 </section>
+<section class="card" style="margin-top:20px"><strong>🔒 Cópia de segurança</strong><p class="muted">Guarda os teus movimentos e metas num ficheiro. Importa-o para recuperar os dados noutro telemóvel.</p><div class="actions"><button class="secondary" id="exportBtn" type="button">Exportar dados</button><button class="secondary" id="importBtn" type="button">Importar dados</button></div><input id="importFile" class="hidden" type="file" accept=".json,application/json"></section>
 <footer>Os teus dados ficam neste navegador. Se limpares os dados do site ou mudares de telemóvel, podes perdê-los.</footer>
 </main>
 
@@ -128,7 +130,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 
 <script>
 'use strict';
-const CHAVE='poupafacil-v2';
+const CHAVE='poupafacil-v2'; // Mantém os dados da versão anterior
 let dados={movimentos:[],metas:[]};
 try{
 const salvos=JSON.parse(localStorage.getItem(CHAVE));
@@ -216,6 +218,30 @@ guardar();render();
 }
 $('data').value=new Date().toLocaleDateString('en-CA');
 render();
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;$('installBtn').textContent='Instalar agora';});
+$('installBtn').addEventListener('click',async()=>{
+ if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;}
+ else alert('No Android, abre este site no Google Chrome, toca nos três pontos (⋮) e escolhe Instalar aplicação ou Adicionar ao ecrã principal.');
+});
+window.addEventListener('appinstalled',()=>{$('installBox').classList.add('hidden')});
+if(window.matchMedia('(display-mode: standalone)').matches)$('installBox').classList.add('hidden');
+$('exportBtn').addEventListener('click',()=>{
+ const blob=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='poupafacil-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{
+ const d=JSON.parse(await file.text());
+ if(!Array.isArray(d.movimentos)||!Array.isArray(d.metas))throw Error('Formato inválido');
+ if(!d.movimentos.every(x=>typeof x.descricao==='string'&&Number.isFinite(x.valor)&&['receita','despesa'].includes(x.tipo)&&typeof x.data==='string')||!d.metas.every(x=>typeof x.nome==='string'&&Number.isFinite(x.alvo)&&Number.isFinite(x.poupado)))throw Error('Dados inválidos');
+ if(!confirm('Importar substitui os dados atuais deste navegador. Exporta uma cópia primeiro. Continuar?'))return;
+ dados={movimentos:d.movimentos,metas:d.metas};guardar();render();alert('Dados importados com sucesso.');
+ }catch(err){alert('Não foi possível importar: '+err.message)}finally{e.target.value=''}
+});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('Offline indisponível',e)));
 </script>
 </body>
 </html>
