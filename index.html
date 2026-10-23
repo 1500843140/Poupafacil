@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>PoupaFácil 3.7</title>
+<title>PoupaFácil 3.8 (prévia)</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -453,7 +453,10 @@ $('importFile').addEventListener('change',async e=>{
  const d=JSON.parse(await file.text());
  if(!Array.isArray(d.movimentos)||!Array.isArray(d.metas))throw Error('Formato inválido');
  if(!d.movimentos.every(x=>typeof x.descricao==='string'&&Number.isFinite(x.valor)&&['receita','despesa'].includes(x.tipo)&&typeof x.data==='string')||!d.metas.every(x=>typeof x.nome==='string'&&Number.isFinite(x.alvo)&&Number.isFinite(x.poupado)))throw Error('Dados inválidos');
- if(!confirm('Importar substitui os dados atuais deste navegador. Exporta uma cópia primeiro. Continuar?'))return;
+ if(!confirm('A importação substitui os dados atuais. Será descarregada uma cópia de segurança antes de continuar. Continuar?'))return;
+ const copia=new Blob([JSON.stringify({version:3,exportedAt:new Date().toISOString(),movimentos:dados.movimentos,metas:dados.metas,fixas:dados.fixas,orcamentos:dados.orcamentos,saldoInicial:dados.saldoInicial},null,2)],{type:'application/json'});
+ const copiaUrl=URL.createObjectURL(copia);const copiaLink=document.createElement('a');copiaLink.href=copiaUrl;copiaLink.download='poupafacil-antes-importacao.json';document.body.appendChild(copiaLink);copiaLink.click();copiaLink.remove();setTimeout(()=>URL.revokeObjectURL(copiaUrl),60000);
+ if(!confirm('Confirma que a cópia de segurança foi descarregada? Se não, cancela a importação.'))return;
  dados={movimentos:d.movimentos,metas:d.metas,fixas:Array.isArray(d.fixas)?d.fixas.filter(x=>typeof x.nome==="string"&&Number.isFinite(x.valor)&&x.valor>0&&Number.isInteger(x.dia)&&x.dia>=1&&x.dia<=31):[],orcamentos:{}};if(d.orcamentos&&typeof d.orcamentos==='object'&&!Array.isArray(d.orcamentos)){for(const [c,v] of Object.entries(d.orcamentos)){if(['Alimentação','Restaurante','Café','Combustível','Luz','Água','Transporte','Casa','Saúde','Lazer','Outros'].includes(c)&&Number.isFinite(v)&&v>0)dados.orcamentos[c]=v}}dados.saldoInicial=Number.isFinite(d.saldoInicial)?d.saldoInicial:0;guardar();render();alert('Dados importados com sucesso.');
  }catch(err){alert('Não foi possível importar: '+err.message)}finally{e.target.value=''}
 });
