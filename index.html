@@ -8,7 +8,7 @@
 <meta name="description" content="PoupaFácil — controla as tuas finanças e metas de poupança.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>PoupaFácil 4.0 (prévia)</title>
+<title>PoupaFácil 4.1 (desenvolvimento)</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18352f;background:#f4f7f5}
 *{box-sizing:border-box}
@@ -58,7 +58,7 @@ footer{text-align:center;font-size:12px;color:#71847b;margin:24px 0}
 <main class="app">
 <header>
 <div><div class="brand">💚 PoupaFácil</div><div class="tag">O teu dinheiro, mais organizado</div></div>
-<span class="tag">Versão 4.0</span>
+<span class="tag">Versão 4.1 · teste</span>
 </header>
 
 <section id="inicio"><div class="card" style="margin-bottom:16px"><strong>Saldo inicial</strong><p class="muted">Dinheiro disponível antes dos movimentos registados. Não conta como receita do mês.</p><div id="saldoInicialExibido" class="value"></div><button class="secondary full" type="button" id="definirSaldoBtn">Definir saldo inicial</button></div>
@@ -230,19 +230,38 @@ function renderDividas(){
  const lista=dados.dividas.filter(d=>d&&Number.isFinite(d.total)&&d.total>0);
  const total=lista.reduce((a,d)=>a+Math.max(0,d.total-d.pago),0),pago=lista.reduce((a,d)=>a+d.pago,0);
  $('dividaSaldo').textContent=euros(total);$('dividaPagamentos').textContent=euros(pago);
- $('listaDividas').innerHTML=lista.length?lista.map(d=>'<div class="card" style="margin-bottom:12px"><strong>'+seguro(d.nome)+'</strong><p class="muted">Em dívida: '+euros(Math.max(0,d.total-d.pago))+' de '+euros(d.total)+'</p><div class="progress"><div class="bar" style="width:'+Math.min(100,d.pago/d.total*100)+'%"></div></div><p class="notice">Prestação prevista: '+euros(d.prestacao||0)+' · Próximo vencimento: '+seguro(d.vencimento||'Não definido')+'</p><div class="actions"><button class="secondary" onclick="pagarDivida('+d.id+')">Registar pagamento</button><button class="danger" onclick="apagarDivida('+d.id+')">Eliminar</button></div></div>').join(''):'<div class="card empty">Ainda não tens dívidas registadas.</div>';
+ $('listaDividas').innerHTML=lista.length?lista.map(d=>{
+ const historico=Array.isArray(d.historico)?d.historico:[];
+ const juros=historico.reduce((a,p)=>a+(Number(p.juros)||0),0);
+ const prestacoes=historico.reduce((a,p)=>a+(Number(p.valor)||0),0);
+ const entradas=historico.slice().reverse().map(p=>'<div class="item"><div><strong>'+seguro(p.data)+'</strong><small>Capital: '+euros(p.capital)+' · Juros: '+euros(p.juros)+'</small></div><strong>'+euros(p.valor)+'</strong></div>').join('');
+ return '<div class="card" style="margin-bottom:12px"><strong>'+seguro(d.nome)+'</strong><p class="muted">Capital por pagar: '+euros(Math.max(0,d.total-d.pago))+' de '+euros(d.total)+'</p><div class="progress"><div class="bar" style="width:'+Math.min(100,d.pago/d.total*100)+'%"></div></div><p class="notice">Prestação prevista: '+euros(d.prestacao||0)+' · Próximo vencimento: '+seguro(d.vencimento||'Não definido')+'</p><p class="notice">Pagamentos acompanhados: '+euros(prestacoes)+' · Juros registados: '+euros(juros)+'</p><div class="actions"><button class="secondary" onclick="pagarDivida('+d.id+')">Registar prestação</button><button class="danger" onclick="apagarDivida('+d.id+')">Eliminar</button></div>'+(entradas?'<details><summary>Histórico de prestações ('+historico.length+')</summary>'+entradas+'</details>':'')+'</div>';
+ }).join(''):'<div class="card empty">Ainda não tens dívidas registadas.</div>';
 }
 $('formDivida').addEventListener('submit',e=>{
  e.preventDefault();const total=Number($('dividaTotal').value),pago=Number($('dividaPago').value),prestacao=Number($('dividaPrestacao').value||0);
  if(!Number.isFinite(total)||total<=0||!Number.isFinite(pago)||pago<0||pago>total||!Number.isFinite(prestacao)||prestacao<0)return alert('Confirma os valores da dívida.');
- dados.dividas.push({id:Date.now()+Math.floor(Math.random()*1000),nome:$('dividaNome').value.trim(),total:Math.round(total*100)/100,pago:Math.round(pago*100)/100,prestacao:Math.round(prestacao*100)/100,vencimento:$('dividaVencimento').value});
+ dados.dividas.push({id:Date.now()+Math.floor(Math.random()*1000),nome:$('dividaNome').value.trim(),total:Math.round(total*100)/100,pago:Math.round(pago*100)/100,prestacao:Math.round(prestacao*100)/100,vencimento:$('dividaVencimento').value,historico:[]});
  guardar();$('formDivida').reset();$('dividaPago').value=0;$('dividaPrestacao').value=0;render();
 });
 function pagarDivida(id){
  const d=dados.dividas.find(x=>x.id===id);if(!d)return;
- const entrada=prompt('Quanto pagaste (€)? Saldo restante: '+euros(Math.max(0,d.total-d.pago)));if(entrada===null)return;
- const valor=Number(entrada.trim().replace(',','.'));if(!Number.isFinite(valor)||valor<=0||valor>Math.round((d.total-d.pago)*100)/100)return alert('Valor inválido ou superior ao saldo em dívida.');
- d.pago=Math.min(d.total,Math.round((d.pago+valor)*100)/100);guardar();render();alert('Pagamento acompanhado na dívida. Para descontar do saldo disponível, regista também a despesa em Movimentos.');
+ const restante=Math.round((d.total-d.pago)*100)/100;
+ if(restante<=0)return alert('Esta dívida já está liquidada.');
+ const entrada=prompt('Valor total da prestação (€):',String(d.prestacao||''));if(entrada===null)return;
+ const valor=Number(entrada.trim().replace(',','.'));
+ if(!Number.isFinite(valor)||valor<=0||valor>99999999)return alert('Prestação inválida.');
+ const entradaJuros=prompt('Quanto desta prestação corresponde a juros (€)?','0');if(entradaJuros===null)return;
+ const juros=Number(entradaJuros.trim().replace(',','.'));
+ if(!Number.isFinite(juros)||juros<0||juros>valor)return alert('Os juros devem estar entre zero e o valor da prestação.');
+ const capital=Math.round((valor-juros)*100)/100;
+ if(capital<=0)return alert('A prestação não amortiza capital. Regista um valor de capital positivo.');
+ if(capital>restante)return alert('A amortização de capital excede o saldo em dívida ('+euros(restante)+').');
+ if(!confirm('Registar prestação de '+euros(valor)+' (capital '+euros(capital)+' + juros '+euros(juros)+')?'))return;
+ if(!Array.isArray(d.historico))d.historico=[];
+ d.historico.push({id:Date.now()+Math.floor(Math.random()*1000),data:new Date().toLocaleDateString('sv-SE'),valor:Math.round(valor*100)/100,capital,juros:Math.round(juros*100)/100});
+ d.pago=Math.min(d.total,Math.round((d.pago+capital)*100)/100);
+ guardar();render();alert('Prestação registada na dívida. Para descontar do saldo disponível, regista também a despesa em Movimentos. Não registes a prestação duas vezes.');
 }
 function apagarDivida(id){if(!confirm('Eliminar esta dívida do acompanhamento?'))return;dados.dividas=dados.dividas.filter(d=>d.id!==id);guardar();render()}
 function renderCalendario(){
